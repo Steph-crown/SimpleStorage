@@ -1,5 +1,8 @@
 const ethers = require("ethers");
 const fs = require("fs-extra");
+const dotenv = require("dotenv");
+
+dotenv.config();
 
 const main = async () => {
   // compile the contract
@@ -7,19 +10,17 @@ const main = async () => {
 
   // connect to this node through the rpc provider
   // node runs on ganache
-  const provider = new ethers.providers.JsonRpcProvider(
-    "http://127.0.0.1:7545"
-  );
+  const provider = new ethers.providers.JsonRpcProvider(process.env.RPC_URL);
 
   // get the signer wallet
   // this is the account that we will use to sign transactions
-  const wallet = new ethers.Wallet(
-    "706d55b7012aac6250a6cdce53ada410730bf7b3b1af2534beab0f8cdf34f0c0",
-    provider
-  );
+  const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
 
   // contract abi
-  const abi = fs.readFileSync("./SimpleStorage_sol_SimpleStorage.abi", "utf-8");
+  const abi = fs.readFileSync(
+    "./SimpleStorage_sol_SimpleStorage.json",
+    "utf-8"
+  );
 
   // contract bytecode
   const binary = fs.readFileSync(
@@ -33,8 +34,37 @@ const main = async () => {
   const contractFactory = new ethers.ContractFactory(abi, binary, wallet);
   console.log("Deploying, wait...");
 
-  const contract = await contractFactory.deploy();
-  console.log(contract);
+  const contract = await contractFactory.deploy({
+    gasPrice: 1000000000,
+  });
+  // console.log(contract);
+
+  // waits for one block to be added
+  const deploymentReceipt = await contract.deployTransaction.wait(1);
+  // console.log("Deploy transacyopn");
+  // console.log(contract.deployTransaction);
+
+  // console.log("Transaction receipt");
+  // console.log(deploymentReceipt);
+  const storeResponse = await contract.store("Green");
+  const storeReceipt = storeResponse.wait(1);
+  const currentFavourite = await contract.retrieveMyFavColor();
+  console.log("favourite number", currentFavourite);
+};
+
+const deployWithTxn = async (wallet) => {
+  const nonce = await wallet.getTransactionCount();
+  const txn = {
+    nonce,
+    to: contractAddress,
+    value: 0,
+    data: "0x",
+    chainId: 1337,
+  };
+
+  const sentTxResponse = await wallet.sendTransaction(txn);
+  await sentTxResponse.wait(1);
+  console.log("sentResponse", sentTxResponse);
 };
 
 main()
