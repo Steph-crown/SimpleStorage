@@ -14,7 +14,15 @@ const main = async () => {
 
   // get the signer wallet
   // this is the account that we will use to sign transactions
-  const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
+  // const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
+
+  const encrypedJson = fs.readFileSync(".encryptedJsonKey.json", "utf8");
+  let wallet = new ethers.Wallet.fromEncryptedJsonSync(
+    encrypedJson,
+    process.env.PRIVATE_KEY_PASSWORD
+  );
+
+  wallet = await wallet.connect(provider);
 
   // contract abi
   const abi = fs.readFileSync(
